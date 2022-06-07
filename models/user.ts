@@ -1,5 +1,6 @@
 import { ResultSetHeader } from 'mysql2';
 import connection from '../db-config';
+import { calculateToken } from '../helpers/usersHelper';
 import IUser from '../interfaces/IUser';
 const argon2 = require('argon2');
 
@@ -53,12 +54,20 @@ const getUserByEmail = async (email : string) : Promise<IUser> => {
     return results[0];
 };
 
+const getUserByToken = async (token: string) : Promise<IUser> => {
+    const [results] = await connection
+    .promise()
+    .query<IUser[]>('SELECT * FROM users WHERE token = ?', [token]);
+    return results[0];
+};
+
 const addUser = async (user : IUser) : Promise<number> => {
     const hashedPassword = await hashPassword(user.password);
+    const token = await calculateToken(user.email);
     const results = await connection
     .promise()
-    .query<ResultSetHeader>('INSERT INTO users (firstname, lastname, email, city, language, password) VALUES (?,?,?,?,?,?)', 
-    [user.firstname, user.lastname, user.email, user.city, user.language, hashedPassword]);
+    .query<ResultSetHeader>('INSERT INTO users (firstname, lastname, email, city, language, password, token) VALUES (?,?,?,?,?,?,?)', 
+    [user.firstname, user.lastname, user.email, user.city, user.language, hashedPassword, token]);
     return results[0].insertId;
 };
 
@@ -97,6 +106,12 @@ const updateUser = async (idUser : number, user: IUser) : Promise<boolean> => {
         sqlValues.push(hashedPassword);
         oneValue = true;
     }
+    if (user.email || user.token) {
+        sql += oneValue ? ' , token = ? ' : ' token = ? ';
+        const token = calculateToken(user.email);
+        sqlValues.push(token);
+        oneValue = true;
+    }
     sql += ' WHERE id = ?';
     sqlValues.push(idUser);
 
@@ -113,4 +128,4 @@ const deleteUser = async (idUser: number) : Promise<boolean> => {
     return results[0].affectedRows === 1;
 }
 
-export { getAllUsers, getUserById, getUserByEmail, addUser, updateUser, deleteUser, hashPassword, verifyPassword };
+export { getAllUsers, getUserById, getUserByEmail, getUserByToken, addUser, updateUser, deleteUser, hashPassword, verifyPassword };

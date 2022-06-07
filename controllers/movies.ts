@@ -1,9 +1,13 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import Joi from 'joi';
 import * as Movie from '../models/movie';
+import * as User from '../models/user';
 import IMovie from '../interfaces/IMovie';
 import { ErrorHandler } from '../helpers/errors';
-import { createCipheriv } from 'crypto';
+
+interface ICookie {
+    user_token: string;
+  };
 
 //Middleware de vérification des inputs
 const validateMovie = (req: Request, res: Response, next: NextFunction) => {
@@ -43,10 +47,11 @@ const movieExists = async (req: Request, res: Response, next: NextFunction) => {
 
 const getAllMovies = (async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // const title = req.query.title as string;
-        // const director = req.query.director as string;
         const { title, director } = req.query as IMovie;
-        const movies = await Movie.getAllMovies(title, director);
+        const { user_token } = req.cookies as ICookie;
+        const user = await User.getUserByToken(user_token);
+        const idUser = user ? user.id : 0;
+        const movies = await Movie.getAllMovies(title, director, idUser);
         // res.setHeader(
         //     'Content-Range',
         //     `users : 0-${users.length}/${users.length + 1}`  -> Fonction à mettre pour utiliser React Admin
@@ -69,9 +74,15 @@ const getOneMovie = (async (req: Request, res: Response, next: NextFunction) => 
 
 const addMovie = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const movie = req.body as IMovie;
-        movie.id = await Movie.addMovie(movie);
-        res.status(201).json(movie);
+        const { user_token } = req.cookies as ICookie;
+        const user = await User.getUserByToken(user_token);
+        if (user) {
+            const movie = {...req.body, idUser: user.id} as IMovie;
+            movie.id = await Movie.addMovie(movie);
+            res.status(201).json(movie);
+        } else {
+            res.sendStatus(401);
+        }
     } catch(err) {
         next(err);
     }

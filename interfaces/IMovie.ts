@@ -7,4 +7,5 @@ export default interface IMovie extends RowDataPacket {
     year: string;
     color: boolean;
     duration: number;
+    idUser: number;
 }

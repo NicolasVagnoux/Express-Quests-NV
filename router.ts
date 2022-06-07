@@ -33,7 +33,7 @@ const setupRoutes = (server: Express) => {
     usersController.userExists,
     usersController.deleteUser);
   //Check credentials
-  server.post('/api/auth/checkCredentials',
+  server.post('/api/login',
     authController.checkCredentials);
 
   //MOVIES
