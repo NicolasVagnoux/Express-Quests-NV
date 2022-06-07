@@ -32,9 +32,12 @@ const setupRoutes = (server: Express) => {
   server.delete('/api/users/:idUser',
     usersController.userExists,
     usersController.deleteUser);
-  //Check credentials
-  server.post('/api/login',
-    authController.checkCredentials);
+
+  //AUTHENTICATION
+  //Login
+  server.post('/api/login', authController.login);
+  //Logout
+  server.post('/api/logout', authController.logout);
 
   //MOVIES
   //GET movies

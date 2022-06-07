@@ -1,9 +1,9 @@
 import { NextFunction, Request, RequestHandler, Response } from 'express';
 import Joi from 'joi';
 import * as Movie from '../models/movie';
-import * as User from '../models/user';
 import IMovie from '../interfaces/IMovie';
 import { ErrorHandler } from '../helpers/errors';
+import { decodeToken } from '../helpers/usersHelper';
 
 interface ICookie {
     user_token: string;
@@ -49,8 +49,7 @@ const getAllMovies = (async (req: Request, res: Response, next: NextFunction) =>
     try {
         const { title, director } = req.query as IMovie;
         const { user_token } = req.cookies as ICookie;
-        const user = await User.getUserByToken(user_token);
-        const idUser = user ? user.id : 0;
+        const idUser = user_token ? decodeToken(user_token).idUser : 0;
         const movies = await Movie.getAllMovies(title, director, idUser);
         // res.setHeader(
         //     'Content-Range',
@@ -75,9 +74,9 @@ const getOneMovie = (async (req: Request, res: Response, next: NextFunction) => 
 const addMovie = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { user_token } = req.cookies as ICookie;
-        const user = await User.getUserByToken(user_token);
-        if (user) {
-            const movie = {...req.body, idUser: user.id} as IMovie;
+        if (user_token) {
+            const { idUser } = decodeToken(user_token);
+            const movie = {...req.body, idUser: idUser} as IMovie;
             movie.id = await Movie.addMovie(movie);
             res.status(201).json(movie);
         } else {
