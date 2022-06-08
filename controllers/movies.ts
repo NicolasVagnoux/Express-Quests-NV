@@ -3,7 +3,11 @@ import Joi from 'joi';
 import * as Movie from '../models/movie';
 import IMovie from '../interfaces/IMovie';
 import { ErrorHandler } from '../helpers/errors';
-import { createCipheriv } from 'crypto';
+import { decodeToken } from '../helpers/usersHelper';
+
+interface ICookie {
+    user_token: string;
+  };
 
 //Middleware de vérification des inputs
 const validateMovie = (req: Request, res: Response, next: NextFunction) => {
@@ -43,10 +47,10 @@ const movieExists = async (req: Request, res: Response, next: NextFunction) => {
 
 const getAllMovies = (async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // const title = req.query.title as string;
-        // const director = req.query.director as string;
         const { title, director } = req.query as IMovie;
-        const movies = await Movie.getAllMovies(title, director);
+        const { user_token } = req.cookies as ICookie;
+        const idUser = user_token ? decodeToken(user_token).idUser : 0;
+        const movies = await Movie.getAllMovies(title, director, idUser);
         // res.setHeader(
         //     'Content-Range',
         //     `users : 0-${users.length}/${users.length + 1}`  -> Fonction à mettre pour utiliser React Admin
@@ -69,9 +73,15 @@ const getOneMovie = (async (req: Request, res: Response, next: NextFunction) => 
 
 const addMovie = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const movie = req.body as IMovie;
-        movie.id = await Movie.addMovie(movie);
-        res.status(201).json(movie);
+        const { user_token } = req.cookies as ICookie;
+        if (user_token) {
+            const { idUser } = decodeToken(user_token);
+            const movie = {...req.body, idUser: idUser} as IMovie;
+            movie.id = await Movie.addMovie(movie);
+            res.status(201).json(movie);
+        } else {
+            res.sendStatus(401);
+        }
     } catch(err) {
         next(err);
     }

@@ -2,9 +2,9 @@ import { ResultSetHeader } from 'mysql2';
 import connection from '../db-config';
 import IMovie from '../interfaces/IMovie';
 
-const getAllMovies = async (title : string = '', director : string = '') : Promise<IMovie[]> => {
+const getAllMovies = async (title : string = '', director : string = '', idUser : number = 0) : Promise<IMovie[]> => {
     let sql  = 'SELECT * FROM movies';
-    const sqlValues : string[] = [];
+    const sqlValues : Array< string | number> = [];
     if(title) {
         sql += ' WHERE title LIKE ?';
         sqlValues.push(`%${title}%`);
@@ -16,6 +16,14 @@ const getAllMovies = async (title : string = '', director : string = '') : Promi
             sql += ' WHERE director LIKE ?';
         }
         sqlValues.push(`%${director}%`);
+    }
+    if(idUser) {
+        if(title || director) {
+            sql += ' AND idUser = ?';
+        } else {
+            sql += ' WHERE idUser = ?';
+        }
+        sqlValues.push(idUser);
     }
     const results = await connection
     .promise()
@@ -33,8 +41,8 @@ const getMovieById = async (idMovie : number) : Promise<IMovie> => {
 const addMovie = async (movie : IMovie) : Promise<number> => {
     const results = await connection
     .promise()
-    .query<ResultSetHeader>('INSERT INTO movies (title, director, year, color, duration) VALUES (?,?,?,?,?)',
-    [movie.title, movie.director, movie.year, movie.color, movie.duration]);
+    .query<ResultSetHeader>('INSERT INTO movies (title, director, year, color, duration, idUser) VALUES (?,?,?,?,?,?)',
+    [movie.title, movie.director, movie.year, movie.color, movie.duration, movie.idUser]);
     return results[0].insertId;
 }
 
